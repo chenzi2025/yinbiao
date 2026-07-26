@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>英语音标学习系统</title>
+<style>
+:root{--bg:linear-gradient(135deg,#667eea 0%,#764ba2 100%);--card:#fff;--text:#2d3748;--muted:#718096;--primary:#5a4fcf;--accent:#f59e0b;--shadow:0 4px 24px rgba(0,0,0,.08);--radius:16px;--radius-sm:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:20px}
+.container{max-width:920px;width:100%;margin:0 auto}
+.header{text-align:center;padding:28px 20px 16px}
+.header h1{font-size:1.8rem;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.15)}
+.header .sub{font-size:.85rem;color:rgba(255,255,255,.75);margin-top:6px}
+
+.tabs{display:flex;gap:0;margin:0 0 16px;background:rgba(255,255,255,.15);border-radius:var(--radius);padding:5px;backdrop-filter:blur(10px);flex-wrap:wrap}
+.tab-btn{flex:1 0 auto;padding:10px 6px;border:none;background:transparent;border-radius:12px;cursor:pointer;font-size:.82rem;font-weight:600;color:rgba(255,255,255,.7);transition:all .2s;white-space:nowrap}
+.tab-btn.active{background:#fff;color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+
+.section-title{color:#fff;font-size:1.05rem;font-weight:700;margin:20px 0 10px;padding-left:4px;text-shadow:0 1px 4px rgba(0,0,0,.1)}
+.phoneme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:16px}
+.phoneme-card{background:var(--card);border-radius:var(--radius);padding:14px 10px 10px;text-align:center;transition:all .2s;box-shadow:0 2px 12px rgba(0,0,0,.06);user-select:none;position:relative;overflow:hidden}
+.phoneme-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.phoneme-card:active{transform:scale(.96)}
+.phoneme-card .phoneme-symbol{font-size:1.8rem;font-weight:700;font-family:"Lucida Grande","Arial Unicode MS","Helvetica Neue",sans-serif;color:var(--text);margin-bottom:2px;cursor:pointer;padding:4px 0}
+.phoneme-card .phoneme-label{font-size:.68rem;color:var(--muted);margin-bottom:6px}
+.phoneme-card .word-chip{display:inline-block;padding:3px 14px;background:linear-gradient(135deg,#667eea15,#764ba215);border-radius:14px;font-size:.8rem;font-weight:600;color:var(--primary);cursor:pointer;transition:all .15s;border:1.5px solid transparent;margin:2px 2px}
+.phoneme-card .word-chip:hover{background:linear-gradient(135deg,#667eea25,#764ba225);border-color:var(--primary);transform:scale(1.05)}
+.phoneme-card .word-chip.playing-word{background:var(--primary);color:#fff;border-color:var(--primary)}
+.phoneme-card.playing{box-shadow:0 0 0 3px rgba(90,79,207,.3),0 8px 24px rgba(90,79,207,.25)}
+.phoneme-card.playing .phoneme-symbol{color:var(--primary)}
+.phoneme-card .play-hint{font-size:.62rem;color:var(--muted);opacity:.5;margin-top:2px}
+.phoneme-card.synth{background:#eff6ff}
+.phoneme-card.synth .phoneme-label{color:#1d4ed8}
+.phoneme-card.synth .word-chip{background:linear-gradient(135deg,#3b82f615,#2563eb15);color:#1d4ed8}
+.phoneme-card.synth .word-chip:hover{background:linear-gradient(135deg,#3b82f625,#2563eb25);border-color:#1d4ed8}
+.phoneme-card.synth.playing{box-shadow:0 0 0 3px rgba(59,130,246,.3),0 8px 24px rgba(59,130,246,.25)}
+.phoneme-card.synth.playing .phoneme-symbol{color:#1d4ed8}
+
+.audio-status{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%}
+.audio-status.bbc{background:#10b981}
+.audio-status.synth{background:#3b82f6}
+
+.info-bar{background:rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 16px;margin:8px 0;color:#fff;font-size:.78rem;display:flex;align-items:center;gap:8px;backdrop-filter:blur(6px);flex-wrap:wrap}
+.info-bar .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.info-bar .dot.real{background:#10b981}
+.info-bar .dot.synth{background:#3b82f6}
+
+/* ===== Checkin Bar ===== */
+.checkin-bar{background:rgba(255,255,255,.15);border-radius:var(--radius-sm);padding:10px 16px;margin:4px 0 12px;color:#fff;font-size:.78rem;display:flex;align-items:center;gap:14px;backdrop-filter:blur(6px);flex-wrap:wrap}
+.checkin-bar .ci-item{display:flex;align-items:center;gap:4px}
+.checkin-bar .ci-val{font-weight:700;font-size:.9rem;color:var(--accent)}
+.checkin-bar .ci-divider{width:1px;height:16px;background:rgba(255,255,255,.25)}
+.checkin-cal{display:flex;align-items:center;gap:4px;margin-left:auto}
+.checkin-cal .cal-dot{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;transition:all .2s}
+.checkin-cal .cal-dot.checked{background:var(--accent);color:#fff}
+.checkin-cal .cal-dot.today{border:2px solid var(--accent);background:transparent}
+
+/* ===== Hear Quiz Tab (听辨音标) ===== */
+.hear-quiz-container{display:none}
+.hear-quiz-container.active{display:block}
+.quiz-score{text-align:center;color:#fff;font-size:1.2rem;font-weight:700;margin:12px 0;text-shadow:0 1px 4px rgba(0,0,0,.1)}
+.quiz-question-area{background:var(--card);border-radius:var(--radius);padding:28px 20px;text-align:center;box-shadow:var(--shadow);margin-bottom:16px}
+.quiz-question-area .quiz-prompt{font-size:.95rem;color:var(--muted);margin-bottom:12px}
+.quiz-question-area .quiz-phoneme-display{font-size:3.5rem;font-weight:800;font-family:"Lucida Grande","Arial Unicode MS","Helvetica Neue",sans-serif;color:var(--primary);margin-bottom:6px;min-height:80px;display:flex;align-items:center;justify-content:center}
+.quiz-actions{display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.quiz-btn{padding:10px 24px;border:none;border-radius:24px;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.quiz-btn-replay{background:#e2e8f0;color:var(--text)}
+.quiz-btn-replay:hover{background:#cbd5e0}
+.quiz-btn-next{background:var(--primary);color:#fff}
+.quiz-btn-next:hover{background:#4a3fbf;transform:translateY(-1px)}
+.quiz-options{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:600px;margin:20px auto 0}
+.quiz-option{background:var(--card);border-radius:var(--radius);padding:18px 10px;text-align:center;font-size:1.8rem;font-weight:700;font-family:"Lucida Grande","Arial Unicode MS","Helvetica Neue",sans-serif;cursor:pointer;border:3px solid transparent;transition:all .2s;box-shadow:0 2px 12px rgba(0,0,0,.06);color:var(--text)}
+.quiz-option:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.14);border-color:var(--primary)}
+.quiz-option:active{transform:scale(.96)}
+.quiz-option.correct{background:#c6f6d5;border-color:#38a169;color:#22543d}
+.quiz-option.wrong{background:#fed7d7;border-color:#e53e3e;color:#742a2a}
+.quiz-option.highlight-correct{background:#c6f6d5;border-color:#38a169;color:#22543d}
+.quiz-option.disabled{pointer-events:none;opacity:.7}
+.quiz-feedback{text-align:center;font-weight:700;font-size:1.05rem;margin-top:12px;min-height:28px}
+.quiz-feedback.correct-fb{color:#38a169}
+.quiz-feedback.wrong-fb{color:#e53e3e}
+
+/* ===== Spelling Practice Tab (直拼练习) ===== */
+.spell-container{display:none}
+.spell-container.active{display:block}
+.spell-score{text-align:center;color:#fff;font-size:1.2rem;font-weight:700;margin:12px 0;text-shadow:0 1px 4px rgba(0,0,0,.1)}
+.spell-card-area{background:var(--card);border-radius:var(--radius);padding:32px 24px;text-align:center;box-shadow:var(--shadow);margin-bottom:16px}
+.spell-word-display{font-size:2.5rem;font-weight:800;margin-bottom:8px;letter-spacing:2px}
+.spell-word-display .hl{color:var(--accent);font-weight:900;text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:6px;text-decoration-thickness:2px}
+.spell-ipa-display{font-size:1.15rem;color:var(--muted);margin-bottom:12px;font-family:"Charis SIL","Gentium Plus","Doulos SIL","Arial Unicode MS","Lucida Grande",sans-serif;display:none;min-height:22px}
+.spell-prompt{font-size:.9rem;color:var(--muted);margin-bottom:4px}
+.spell-hear-btn{padding:8px 20px;border:none;border-radius:20px;background:linear-gradient(135deg,#667eea20,#764ba220);color:var(--primary);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;margin-bottom:8px}
+.spell-hear-btn:hover{background:linear-gradient(135deg,#667eea35,#764ba235)}
+.spell-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;max-width:600px;margin:20px auto 0}
+.spell-option{background:var(--card);border-radius:var(--radius);padding:16px 8px;text-align:center;font-size:1.6rem;font-weight:700;font-family:"Lucida Grande","Arial Unicode MS","Helvetica Neue",sans-serif;cursor:pointer;border:3px solid transparent;transition:all .2s;box-shadow:0 2px 12px rgba(0,0,0,.06);color:var(--text)}
+.spell-option:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.14);border-color:var(--primary)}
+.spell-option:active{transform:scale(.96)}
+.spell-option.correct{background:#c6f6d5;border-color:#38a169;color:#22543d}
+.spell-option.wrong{background:#fed7d7;border-color:#e53e3e;color:#742a2a}
+.spell-option.highlight-correct{background:#c6f6d5;border-color:#38a169;color:#22543d}
+.spell-option.disabled{pointer-events:none;opacity:.7}
+.spell-feedback{text-align:center;font-weight:700;font-size:1.05rem;margin-top:12px;min-height:28px}
+.spell-feedback.correct-fb{color:#38a169}
+.spell-feedback.wrong-fb{color:#e53e3e}
+.spell-next-btn{padding:10px 28px;border:none;border-radius:24px;background:var(--primary);color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;margin-top:12px}
+.spell-next-btn:hover{background:#4a3fbf;transform:translateY(-1px)}
+
+/* ===== Recorder Tab ===== */
+.recorder-container{display:none}
+.recorder-container.active{display:block}
+.recorder-section{background:var(--card);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:16px}
+.recorder-section h3{color:var(--text);font-size:1rem;margin-bottom:12px}
+.recorder-phoneme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:8px;margin-bottom:16px}
+.recorder-phoneme-chip{background:#f7fafc;border-radius:var(--radius-sm);padding:10px 8px;text-align:center;font-size:1.1rem;font-weight:700;font-family:"Lucida Grande","Arial Unicode MS","Helvetica Neue",sans-serif;cursor:pointer;border:2px solid transparent;transition:all .15s;color:var(--text)}
+.recorder-phoneme-chip:hover{border-color:var(--primary);background:#ebf4ff}
+.recorder-phoneme-chip.selected{border-color:var(--primary);background:#e9d8fd;color:var(--primary)}
+.recorder-selected-display{text-align:center;margin-bottom:16px;font-size:.9rem;color:var(--muted)}
+.recorder-selected-display strong{color:var(--primary);font-size:1.4rem;margin-left:6px}
+.recorder-controls{display:flex;flex-direction:column;align-items:center;gap:16px}
+.record-btn{width:80px;height:80px;border-radius:50%;border:4px solid #e53e3e;background:#fff;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;position:relative}
+.record-btn::after{content:"";display:block;width:32px;height:32px;border-radius:50%;background:#e53e3e;transition:all .2s}
+.record-btn:hover{transform:scale(1.05);box-shadow:0 4px 16px rgba(229,62,62,.3)}
+.record-btn.recording{animation:pulse 1.5s ease-in-out infinite;border-color:#c53030}
+.record-btn.recording::after{border-radius:6px;width:20px;height:20px;background:#c53030}
+.record-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.4)}50%{box-shadow:0 0 0 18px rgba(229,62,62,0)}}
+.record-label{font-size:.85rem;color:var(--muted);text-align:center}
+.recording-list{margin-top:16px}
+.recording-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f7fafc;border-radius:var(--radius-sm);margin-bottom:8px;flex-wrap:wrap}
+.recording-item .rec-phoneme{font-weight:700;font-size:1.1rem;color:var(--primary);min-width:40px}
+.recording-item .rec-duration{font-size:.78rem;color:var(--muted);min-width:50px}
+.recording-item .rec-actions{margin-left:auto;display:flex;gap:6px}
+.recording-item audio{height:32px;max-width:200px}
+.rec-small-btn{padding:6px 14px;border:none;border-radius:16px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.rec-small-btn.play-btn{background:var(--primary);color:#fff}
+.rec-small-btn.play-btn:hover{background:#4a3fbf}
+.rec-small-btn.del-btn{background:#fed7d7;color:#742a2a}
+.rec-small-btn.del-btn:hover{background:#feb2b2}
+
+.msg{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 24px;border-radius:24px;font-size:.85rem;z-index:999;pointer-events:none;opacity:0;transition:opacity .3s}
+.msg.show{opacity:1}
+.msg.hide{opacity:0}
+
+@media(max-width:500px){
+  .phoneme-grid{grid-template-columns:repeat(3,1fr)}.phoneme-card{padding:10px 6px 8px}.phoneme-card .phoneme-symbol{font-size:1.3rem}
+  .header h1{font-size:1.4rem}.word-chip{font-size:.72rem;padding:2px 10px}
+  .quiz-options{grid-template-columns:repeat(2,1fr)}
+  .spell-options{grid-template-columns:repeat(2,1fr)}
+  .spell-word-display{font-size:1.8rem}
+  .tab-btn{font-size:.68rem;padding:8px 3px}
+  .record-btn{width:64px;height:64px}.record-btn::after{width:26px;height:26px}
+  .record-btn.recording::after{width:16px;height:16px}
+  .checkin-bar{font-size:.7rem;gap:8px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header"><h1>英语音标学习系统</h1><div class="sub">BBC标准英音真人发音 | 点击卡片听音标</div></div>
+
+<div class="tabs">
+<button class="tab-btn active" onclick="switchTab('all')">全部音标</button>
+<button class="tab-btn" onclick="switchTab('vowels')">元音</button>
+<button class="tab-btn" onclick="switchTab('consonants')">辅音</button>
+<button class="tab-btn" onclick="switchTab('hear-quiz')">听辨音标</button>
+<button class="tab-btn" onclick="switchTab('spell-practice')">直拼练习</button>
+<button class="tab-btn" onclick="switchTab('recorder')">录音</button>
+</div>
+
+<div class="info-bar" id="infoBar">
+<span class="dot real"></span> BBC/真人录音（44个）
+<span style="margin-left:auto;font-size:.7rem">点击音标符号听发音 | 点单词听单词发音</span>
+</div>
+
+<div class="checkin-bar" id="checkinBar">
+  <div class="ci-item">今日学习 <span class="ci-val" id="ciTodayCount">0</span></div>
+  <div class="ci-divider"></div>
+  <div class="ci-item">累计 <span class="ci-val" id="ciTotalCount">0</span></div>
+  <div class="ci-divider"></div>
+  <div class="ci-item">连续 <span class="ci-val" id="ciStreak">0</span> 天</div>
+  <div class="checkin-cal" id="checkinCal"></div>
+</div>
+
+<div id="phonemeContainer"></div>
+
+<!-- Hear Quiz Tab (听辨音标) -->
+<div class="hear-quiz-container" id="hearQuizContainer">
+  <div class="quiz-score" id="quizScore">正确: 0 / 0</div>
+  <div class="quiz-question-area">
+    <div class="quiz-prompt">听发音，选择对应的音标：</div>
+    <div class="quiz-phoneme-display" id="quizPhonemeDisplay">?</div>
+    <div class="quiz-actions">
+      <button class="quiz-btn quiz-btn-replay" onclick="replayQuizPhoneme()">重播</button>
+      <button class="quiz-btn quiz-btn-next" onclick="nextQuizQuestion()">下一题</button>
+    </div>
+  </div>
+  <div class="quiz-options" id="quizOptions"></div>
+  <div class="quiz-feedback" id="quizFeedback"></div>
+</div>
+
+<!-- Spelling Practice Tab (直拼练习) -->
+<div class="spell-container" id="spellContainer">
+  <div class="spell-score" id="spellScore">正确: 0 / 0</div>
+  <div class="spell-card-area" id="spellCardArea">
+    <div class="spell-prompt">高亮的字母组合对应哪个音标？</div>
+    <div class="spell-word-display" id="spellWordDisplay"></div>
+    <div class="spell-ipa-display" id="spellIpaDisplay"></div>
+    <button class="spell-hear-btn" onclick="playSpellWord()">听单词发音</button>
+  </div>
+  <div class="spell-options" id="spellOptions"></div>
+  <div class="spell-feedback" id="spellFeedback"></div>
+  <div style="text-align:center"><button class="spell-next-btn" onclick="nextSpellQuestion()">下一题</button></div>
+</div>
+
+<!-- Recorder Tab -->
+<div class="recorder-container" id="recorderContainer">
+  <div class="recorder-section">
+    <h3>选择要练习的音标</h3>
+    <div class="recorder-phoneme-grid" id="recorderPhonemeGrid"></div>
+    <div class="recorder-selected-display">已选择：<strong id="recorderSelectedDisplay">-</strong></div>
+    <div class="recorder-controls">
+      <button class="record-btn" id="recordBtn" onclick="toggleRecording()" disabled></button>
+      <div class="record-label" id="recordLabel">请先选择一个音标</div>
+    </div>
+  </div>
+  <div class="recorder-section">
+    <h3>录音列表</h3>
+    <div class="recording-list" id="recordingList">
+      <div style="color:var(--muted);text-align:center;padding:16px;font-size:.85rem">暂无录音</div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="msg" id="msg"></div>
+
+<script>
+// ===== Phoneme Data =====
+const VOWELS = [
+  ["iː","长i","extended_i","see","tree"],
+  ["ɪ","短i","https://receivedpronunciation.com/wp-content/uploads/2024/03/07_short_vowel_sound_ɪ.mp3","sit","big"],
+  ["e","短e","short_e","bed","pen"],
+  ["æ","短a","ash","cat","hat"],
+  ["ɑː","长a","https://receivedpronunciation.com/wp-content/uploads/2024/03/05_long_vowel_sound_aː.mp3","car","star"],
+  ["ɒ","短o","https://receivedpronunciation.com/wp-content/uploads/2024/03/10_short_vowel_sound_ɒ.mp3","hot","dog"],
+  ["ɔː","长o","https://receivedpronunciation.com/wp-content/uploads/2024/03/03_long_vowel_sound_ɔː.mp3","door","horse"],
+  ["ʊ","短u","https://receivedpronunciation.com/wp-content/uploads/2024/03/08_short_vowel_sound_ʊ.mp3","put","book"],
+  ["uː","长u","https://receivedpronunciation.com/wp-content/uploads/2024/03/04_long_vowel_sound_uː.mp3","too","school"],
+  ["ʌ","短ʌ","https://receivedpronunciation.com/wp-content/uploads/2024/03/11_short_vowel_sound_ʌ.mp3","cup","sun"],
+  ["ɜː","长ɜ","https://receivedpronunciation.com/wp-content/uploads/2024/03/02_long_vowel_sound_ɜː.mp3","bird","word"],
+  ["ə","schwa","schwa","about","teacher"],
+  ["eɪ","ei","e_I","day","cake"],
+  ["aɪ","ai","a_I","my","bike"],
+  ["ɔɪ","oi","open_o_I","boy","toy"],
+  ["əʊ","əu","o_reverse_omega","go","boat"],
+  ["aʊ","au","ow","now","house"],
+  ["ɪə","iə","I_schwa","near","ear"],
+  ["eə","eə","e_schwa","hair","chair"],
+  ["ʊə","uə","reverse_omega_schwa","tour","poor"]
+];
+
+const CONSONANTS = [
+  ["p","p","p","pen","cup"],
+  ["b","b","b","bed","job"],
+  ["t","t","t","tea","cat"],
+  ["d","d","d","day","red"],
+  ["k","k","k","cat","book"],
+  ["g","g","g","go","big"],
+  ["tʃ","ch","t_esh","chair","watch"],
+  ["dʒ","j","d_ezh","job","page"],
+  ["f","f","f","fish","off"],
+  ["v","v","v","van","five"],
+  ["θ","th","theta","think","mouth"],
+  ["ð","dh","eth","this","father"],
+  ["s","s","s","see","bus"],
+  ["z","z","z","zoo","rose"],
+  ["ʃ","sh","esh","she","fish"],
+  ["ʒ","zh","ezh","vision","pleasure"],
+  ["h","h","h","hat","happy"],
+  ["m","m","m","man","home"],
+  ["n","n","n","no","sun"],
+  ["ŋ","ng","ng","sing","long"],
+  ["l","l","l","let","ball"],
+  ["r","r","r","red","car"],
+  ["j","y","j","yes","you"],
+  ["w","w","w","wet","when"]
+];
+
+const ABELARD_BASE = "https://abelard.org/sounds/";
+
+// ===== Spelling Practice Question Bank =====
+const SPELL_QUESTIONS = [
+  { word: "see", ipa: "/siː/", hl: "ee", answer: "iː" },
+  { word: "read", ipa: "/riːd/", hl: "ea", answer: "iː" },
+  { word: "food", ipa: "/fuːd/", hl: "oo", answer: "uː" },
+  { word: "book", ipa: "/bʊk/", hl: "oo", answer: "ʊ" },
+  { word: "car", ipa: "/kɑː/", hl: "ar", answer: "ɑː" },
+  { word: "horse", ipa: "/hɔːs/", hl: "or", answer: "ɔː" },
+  { word: "her", ipa: "/hɜː/", hl: "er", answer: "ɜː" },
+  { word: "bird", ipa: "/bɜːd/", hl: "ir", answer: "ɜː" },
+  { word: "turn", ipa: "/tɜːn/", hl: "ur", answer: "ɜː" },
+  { word: "now", ipa: "/naʊ/", hl: "ow", answer: "aʊ" },
+  { word: "house", ipa: "/haʊs/", hl: "ou", answer: "aʊ" },
+  { word: "boy", ipa: "/bɔɪ/", hl: "oy", answer: "ɔɪ" },
+  { word: "coin", ipa: "/kɔɪn/", hl: "oi", answer: "ɔɪ" },
+  { word: "rain", ipa: "/reɪn/", hl: "ai", answer: "eɪ" },
+  { word: "day", ipa: "/deɪ/", hl: "ay", answer: "eɪ" },
+  { word: "boat", ipa: "/bəʊt/", hl: "oa", answer: "əʊ" },
+  { word: "show", ipa: "/ʃəʊ/", hl: "ow", answer: "əʊ" },
+  { word: "near", ipa: "/nɪə/", hl: "ear", answer: "ɪə" },
+  { word: "hair", ipa: "/heə/", hl: "air", answer: "eə" },
+  { word: "care", ipa: "/keə/", hl: "are", answer: "eə" },
+  { word: "sure", ipa: "/ʃʊə/", hl: "ure", answer: "ʊə" },
+  { word: "chair", ipa: "/tʃeə/", hl: "ch", answer: "tʃ" },
+  { word: "ship", ipa: "/ʃɪp/", hl: "sh", answer: "ʃ" },
+  { word: "think", ipa: "/θɪŋk/", hl: "th", answer: "θ" },
+  { word: "this", ipa: "/ðɪs/", hl: "th", answer: "ð" },
+  { word: "sing", ipa: "/sɪŋ/", hl: "ng", answer: "ŋ" },
+  { word: "phone", ipa: "/fəʊn/", hl: "ph", answer: "f" },
+  { word: "when", ipa: "/wen/", hl: "wh", answer: "w" },
+  { word: "back", ipa: "/bæk/", hl: "ck", answer: "k" },
+  { word: "cat", ipa: "/kæt/", hl: "a", answer: "æ" },
+  { word: "bed", ipa: "/bed/", hl: "e", answer: "e" },
+  { word: "big", ipa: "/bɪg/", hl: "i", answer: "ɪ" },
+  { word: "hot", ipa: "/hɒt/", hl: "o", answer: "ɒ" },
+  { word: "cup", ipa: "/kʌp/", hl: "u", answer: "ʌ" }
+];
+
+// ===== Audio Engine =====
+let audioCtx = null;
+const trimmedCache = new Map();
+const activeSources = [];
+let wordAudio = null;
+let currentPhonemeAudio = null;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { console.warn("AudioContext not supported"); return null; }
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function stopAll() {
+  activeSources.forEach(s => { try { s.stop(); } catch(e) {} });
+  activeSources.length = 0;
+}
+
+// Simple direct playback of abelard MP3
+function playAbelardPhoneme(filename, onEndCallback) {
+  const url = ABELARD_BASE + filename + ".mp3";
+  let audio = trimmedCache.get(url);
+  if (!audio) {
+    audio = new Audio(url);
+    trimmedCache.set(url, audio);
+  }
+  audio.currentTime = 0;
+  if (onEndCallback) {
+    audio.onended = () => { onEndCallback(); audio.onended = null; };
+  }
+  audio.play().catch(e => console.warn("Abelard playback failed:", filename, e.message));
+  return audio;
+}
+
+// ===== Improved Web Audio Synthesis =====
+const DIPHTHONG_TARGETS = {
+  "eɪ": { start:[480,1950,2800], end:[400,1920,2560], dur:0.55 },
+  "aɪ": { start:[680,1700,2600], end:[400,1920,2560], dur:0.55 },
+  "ɔɪ": { start:[490,740,2600],  end:[400,1920,2560], dur:0.55 },
+  "əʊ": { start:[500,1500,2500], end:[440,1020,2240], dur:0.55 },
+  "aʊ": { start:[690,1200,2450], end:[440,1020,2240], dur:0.55 },
+  "ɪə": { start:[400,1920,2560], end:[500,1500,2500], dur:0.55 },
+  "eə": { start:[520,1850,2500], end:[500,1500,2500], dur:0.55 },
+  "ʊə": { start:[440,1020,2240], end:[500,1500,2500], dur:0.55 }
+};
+
+function synthDiphthong(symbol, ctx) {
+  const t = DIPHTHONG_TARGETS[symbol];
+  if (!t) return;
+  const [sF1,sF2,sF3] = t.start;
+  const [eF1,eF2,eF3] = t.end;
+  const dur = t.dur;
+  const f0 = 120;
+  const n = ctx.currentTime;
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, n);
+  masterGain.gain.linearRampToValueAtTime(0.7, n + 0.015);
+  masterGain.gain.setValueAtTime(0.7, n + dur - 0.025);
+  masterGain.gain.linearRampToValueAtTime(0, n + dur);
+  masterGain.connect(ctx.destination);
+
+  const oscF0 = ctx.createOscillator();
+  oscF0.type = "sawtooth";
+  oscF0.frequency.value = f0;
+  const gainF0 = ctx.createGain();
+  gainF0.gain.value = 0.06;
+  oscF0.connect(gainF0);
+  gainF0.connect(masterGain);
+  oscF0.start(n);
+  oscF0.stop(n + dur);
+  activeSources.push(oscF0);
+
+  const pairs = [
+    [sF1, eF1, 50, 0.11],
+    [sF2, eF2, 70, 0.06],
+    [sF3, eF3, 110, 0.025]
+  ];
+  pairs.forEach(([sF, eF, bw, gainV]) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(sF, n);
+    osc.frequency.linearRampToValueAtTime(eF, n + dur);
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.setValueAtTime(sF, n);
+    bp.frequency.linearRampToValueAtTime(eF, n + dur);
+    bp.Q.value = sF / bw;
+    const g = ctx.createGain();
+    g.gain.value = gainV;
+    osc.connect(bp);
+    bp.connect(g);
+    g.connect(masterGain);
+    osc.start(n);
+    osc.stop(n + dur);
+    activeSources.push(osc);
+  });
+}
+
+function synthPhoneme(symbol) {
+  stopAll();
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (DIPHTHONG_TARGETS[symbol]) {
+    synthDiphthong(symbol, ctx);
+    return;
+  }
+  const isVowel = VOWELS.some(v => v[0] === symbol);
+  isVowel ? synthVowel2(symbol, ctx) : synthConsonant2(symbol, ctx);
+}
+
+function synthVowel2(symbol, ctx) {
+  const dur = 0.58;
+  // Precise formant data: [F1, F2, F3] from authoritative phonetics references
+  const formants = {
+    "iː":[280, 2250, 2900],
+    "ɪ":[400, 1920, 2560],
+    "e":[520, 1850, 2500],
+    "æ":[660, 1720, 2410],
+    "ɑː":[710, 1100, 2450],
+    "ɒ":[590, 880, 2540],
+    "ɔː":[490, 740, 2600],
+    "ʊ":[440, 1020, 2240],
+    "uː":[300, 870, 2240],
+    "ʌ":[630, 1200, 2400],
+    "ɜː":[500, 1400, 2500],
+    "ə":[500, 1500, 2500],
+    "eɪ":[480, 1950, 2800],
+    "aɪ":[680, 1700, 2600],
+    "ɔɪ":[480, 1020, 2400],
+    "əʊ":[480, 1050, 2500],
+    "aʊ":[690, 1200, 2450],
+    "ɪə":[380, 2050, 2750],
+    "eə":[530, 1850, 2600],
+    "ʊə":[400, 1050, 2300]
+  };
+  const [f1, f2, f3] = formants[symbol] || [500, 1500, 2500];
+  const f0 = 120; // fundamental frequency
+  const n = ctx.currentTime;
+
+  // Create master gain with envelope
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, n);
+  masterGain.gain.linearRampToValueAtTime(0.7, n + 0.015);
+  masterGain.gain.setValueAtTime(0.7, n + dur - 0.025);
+  masterGain.gain.linearRampToValueAtTime(0, n + dur);
+  masterGain.connect(ctx.destination);
+
+  // Fundamental oscillator (F0 glottal source)
+  const oscF0 = ctx.createOscillator();
+  oscF0.type = "sawtooth";
+  oscF0.frequency.value = f0;
+  const gainF0 = ctx.createGain();
+  gainF0.gain.value = 0.06;
+  oscF0.connect(gainF0);
+  gainF0.connect(masterGain);
+  oscF0.start(n);
+  oscF0.stop(n + dur);
+  activeSources.push(oscF0);
+
+  // Three formant filters
+  [f1, f2, f3].forEach((f, i) => {
+    const bw = [50, 70, 110][i]; // bandwidth increases by formant number
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = f;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = f;
+    bp.Q.value = f / bw;
+    const g = ctx.createGain();
+    g.gain.value = [0.11, 0.06, 0.025][i];
+    osc.connect(bp);
+    bp.connect(g);
+    g.connect(masterGain);
+    osc.start(n);
+    osc.stop(n + dur);
+    activeSources.push(osc);
+  });
+}
+
+function synthConsonant2(symbol, ctx) {
+  // Refined parameters: [gain, freq, Q, isNoise, duration, noiseType]
+  const cfg = {
+    p:[0.16, 2200, 9, 1, 0.14],
+    b:[0.10, 140, 3, 0, 0.12],
+    t:[0.17, 4200, 12, 1, 0.15],
+    d:[0.11, 140, 3, 0, 0.13],
+    k:[0.14, 1800, 7, 1, 0.12],
+    g:[0.10, 130, 3, 0, 0.11],
+    tʃ:[0.19, 3600, 8, 1, 0.18],
+    dʒ:[0.12, 140, 3, 0, 0.13],
+    f:[0.10, 5200, 5, 1, 0.10],
+    v:[0.08, 140, 3, 0, 0.09],
+    θ:[0.09, 6200, 4, 1, 0.09],
+    ð:[0.07, 140, 3, 0, 0.08],
+    s:[0.14, 5800, 6, 1, 0.14],
+    z:[0.09, 140, 3, 0, 0.10],
+    ʃ:[0.13, 3800, 4, 1, 0.12],
+    ʒ:[0.09, 140, 3, 0, 0.10],
+    h:[0.08, 3100, 1.5, 1, 0.08],
+    m:[0.22, 260, 2, 0, 0.22],
+    n:[0.22, 260, 2, 0, 0.22],
+    ŋ:[0.22, 290, 2, 0, 0.22],
+    l:[0.20, 310, 2, 0, 0.20],
+    r:[0.18, 210, 2, 0, 0.18],
+    j:[0.16, 220, 2, 0, 0.16],
+    w:[0.16, 190, 2, 0, 0.16]
+  };
+  const entry = cfg[symbol] || [0.1, 2000, 5, 1, 0.1];
+  const gain = entry[0], freq = entry[1], q = entry[2], isNoise = entry[3], d = entry[4];
+  const n = ctx.currentTime;
+
+  // Master envelope
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, n);
+  masterGain.gain.linearRampToValueAtTime(0.8, n + 0.008);
+  masterGain.gain.setValueAtTime(0.8, n + d - 0.012);
+  masterGain.gain.linearRampToValueAtTime(0, n + d);
+  masterGain.connect(ctx.destination);
+
+  if (isNoise) {
+    const len = Math.floor(ctx.sampleRate * d);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const dat = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) dat[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = freq;
+    bp.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    src.connect(bp);
+    bp.connect(g);
+    g.connect(masterGain);
+    src.start(n);
+    src.stop(n + d);
+    activeSources.push(src);
+  } else {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(n);
+    osc.stop(n + d);
+    activeSources.push(osc);
+  }
+}
+
+// ===== Word Pronunciation (Youdao TTS) =====
+function playWord(word, chipEl) {
+  if (!word) return;
+  document.querySelectorAll(".word-chip").forEach(c => c.classList.remove("playing-word"));
+  if (chipEl) chipEl.classList.add("playing-word");
+  if (wordAudio) { wordAudio.pause(); wordAudio = null; }
+  const audio = new Audio();
+  audio.src = "https://dict.youdao.com/dictvoice?type=0&audio=" + encodeURIComponent(word);
+  audio.volume = 1.0;
+  audio.onplay = () => { wordAudio = audio; };
+  audio.onended = () => { wordAudio = null; if (chipEl) chipEl.classList.remove("playing-word"); };
+  audio.onerror = () => {
+    wordAudio = null; if (chipEl) chipEl.classList.remove("playing-word"); trySpeakWord(word, chipEl);
+  };
+  audio.play().catch(() => { trySpeakWord(word, chipEl); });
+}
+
+function trySpeakWord(word, chipEl) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(word);
+  utter.lang = "en-US";
+  utter.rate = 0.85;
+  utter.volume = 1.0;
+  const voices = speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    const enVoice = voices.find(v => v.lang.startsWith("en") && v.name.includes("Samantha")) ||
+                    voices.find(v => v.lang.startsWith("en-US")) || voices.find(v => v.lang.startsWith("en"));
+    if (enVoice) utter.voice = enVoice;
+  }
+  utter.onstart = () => { if (chipEl) chipEl.classList.add("playing-word"); };
+  utter.onend = () => { if (chipEl) chipEl.classList.remove("playing-word"); };
+  utter.onerror = () => { if (chipEl) chipEl.classList.remove("playing-word"); };
+  setTimeout(() => { speechSynthesis.resume(); speechSynthesis.speak(utter); }, 50);
+}
+
+// Play word for spelling practice
+function playSpellWord() {
+  const word = spellCurrentQuestion ? spellCurrentQuestion.word : null;
+  if (!word) return;
+  if (wordAudio) { wordAudio.pause(); wordAudio = null; }
+  const audio = new Audio();
+  audio.src = "https://dict.youdao.com/dictvoice?type=0&audio=" + encodeURIComponent(word);
+  audio.volume = 1.0;
+  audio.onplay = () => { wordAudio = audio; };
+  audio.onended = () => { wordAudio = null; };
+  audio.onerror = () => { wordAudio = null; trySpeakWord(word, null); };
+  audio.play().catch(() => { trySpeakWord(word, null); });
+}
+
+// ===== Phoneme Pronunciation =====
+// Map null phonemes to example words for Youdao TTS fallback
+const YDTTS_MAP = {
+  "eɪ":"day","aɪ":"my","ɔɪ":"boy","əʊ":"go","ɪə":"near","eə":"hair","ʊə":"tour","tʃ":"chair","dʒ":"job","v":"very"
+};
+
+function playPhoneme(symbol, file, onEndCallback) {
+  if (file) {
+    if (file.startsWith("http")) {
+      // Full URL (receivedpronunciation.com)
+      let audio = trimmedCache.get(file);
+      if (!audio) {
+        audio = new Audio(file);
+        trimmedCache.set(file, audio);
+      }
+      audio.currentTime = 0;
+      if (onEndCallback) {
+        audio.onended = () => { onEndCallback(); audio.onended = null; };
+      }
+      audio.play().catch(e => console.warn("URL playback failed:", file, e.message));
+      return audio;
+    } else {
+      // Abelard filename
+      return playAbelardPhoneme(file, onEndCallback);
+    }
+  } else {
+    synthPhoneme(symbol);
+    if (onEndCallback) setTimeout(onEndCallback, 600);
+    return null;
+  }
+}
+
+function getAllPhonemes() {
+  return [...VOWELS, ...CONSONANTS];
+}
+
+// ===== Check-in System =====
+const CK_KEY = "phoneme_checkin_data";
+
+function getCheckinData() {
+  try {
+    const raw = localStorage.getItem(CK_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { today: "", todayCount: 0, totalCount: 0, checkedDates: [], streak: 0 };
+}
+
+function saveCheckinData(d) {
+  try { localStorage.setItem(CK_KEY, JSON.stringify(d)); } catch (e) {}
+}
+
+function todayStr() {
+  const dt = new Date();
+  return dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0") + "-" + String(dt.getDate()).padStart(2,"0");
+}
+
+function updateCheckin() {
+  let d = getCheckinData();
+  const t = todayStr();
+  if (d.today !== t) {
+    // New day
+    if (d.today && d.todayCount >= 5 && !d.checkedDates.includes(d.today)) {
+      d.checkedDates.push(d.today);
+    }
+    d.today = t;
+    d.todayCount = 0;
+  }
+  d.todayCount++;
+  d.totalCount++;
+  // Check if today qualifies for checkin
+  if (d.todayCount >= 5 && !d.checkedDates.includes(t)) {
+    d.checkedDates.push(t);
+  }
+  // Recalculate streak
+  d.checkedDates.sort().reverse();
+  let streak = 0;
+  const allChecked = new Set(d.checkedDates);
+  const checkDay = new Date();
+  for (let i = 0; i < 365; i++) {
+    const s = checkDay.getFullYear() + "-" + String(checkDay.getMonth()+1).padStart(2,"0") + "-" + String(checkDay.getDate()).padStart(2,"0");
+    if (allChecked.has(s)) {
+      streak++;
+      checkDay.setDate(checkDay.getDate() - 1);
+    } else break;
+  }
+  d.streak = streak;
+  saveCheckinData(d);
+  renderCheckinBar();
+}
+
+function renderCheckinBar() {
+  const d = getCheckinData();
+  document.getElementById("ciTodayCount").textContent = d.todayCount;
+  document.getElementById("ciTotalCount").textContent = d.totalCount;
+  document.getElementById("ciStreak").textContent = d.streak;
+  // 7-day calendar
+  const cal = document.getElementById("checkinCal");
+  const allChecked = new Set(d.checkedDates);
+  let html = "";
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const dt = new Date(now);
+    dt.setDate(dt.getDate() - i);
+    const s = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0") + "-" + String(dt.getDate()).padStart(2,"0");
+    const checked = allChecked.has(s);
+    const isToday = s === todayStr();
+    let cls = "cal-dot";
+    if (checked) cls += " checked";
+    if (isToday) cls += " today";
+    html += `<span class="${cls}" title="${s}">${isToday ? (d.todayCount || "·") : (checked ? "✓" : "·")}</span>`;
+  }
+  cal.innerHTML = html;
+}
+
+// ===== UI: Main Phoneme Grid =====
+let currentTab = "all";
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    const t = b.textContent.trim();
+    b.classList.toggle("active",
+      (tab === "all" && t === "全部音标") ||
+      (tab === "vowels" && t === "元音") ||
+      (tab === "consonants" && t === "辅音") ||
+      (tab === "hear-quiz" && t === "听辨音标") ||
+      (tab === "spell-practice" && t === "直拼练习") ||
+      (tab === "recorder" && t === "录音")
+    );
+  });
+
+  const pc = document.getElementById("phonemeContainer");
+  const hqc = document.getElementById("hearQuizContainer");
+  const sc = document.getElementById("spellContainer");
+  const rc = document.getElementById("recorderContainer");
+  const ib = document.getElementById("infoBar");
+  const cb = document.getElementById("checkinBar");
+
+  pc.style.display = "none";
+  hqc.classList.remove("active");
+  sc.classList.remove("active");
+  rc.classList.remove("active");
+  ib.style.display = "none";
+  cb.style.display = "none";
+
+  if (tab === "all" || tab === "vowels" || tab === "consonants") {
+    pc.style.display = "";
+    ib.style.display = "";
+    cb.style.display = "";
+    renderPhonemes();
+    renderCheckinBar();
+  } else if (tab === "hear-quiz") {
+    hqc.classList.add("active");
+    cb.style.display = "";
+    renderCheckinBar();
+    if (!hearQuizInitialized) initHearQuiz();
+  } else if (tab === "spell-practice") {
+    sc.classList.add("active");
+    cb.style.display = "";
+    renderCheckinBar();
+    if (!spellInitialized) initSpellPractice();
+  } else if (tab === "recorder") {
+    rc.classList.add("active");
+    cb.style.display = "";
+    renderCheckinBar();
+    if (!recorderInitialized) initRecorder();
+  }
+}
+
+function renderPhonemes() {
+  const container = document.getElementById("phonemeContainer");
+  let html = "";
+  const showVowels = currentTab === "all" || currentTab === "vowels";
+  const showConsonants = currentTab === "all" || currentTab === "consonants";
+
+  if (showVowels) {
+    html += '<div class="section-title">元音 (Vowels)</div><div class="phoneme-grid">';
+    VOWELS.forEach(([sym, label, file, w1, w2]) => {
+      const isSynth = !file;
+      html += `<div class="phoneme-card${isSynth?' synth':''}" data-phoneme="${sym}" data-file="${file||''}">
+        <div class="audio-status${isSynth?' synth':' bbc'}"></div>
+        <div class="phoneme-symbol" onclick="onPhonemeClick(this.parentElement)">${sym}</div>
+        <div class="phoneme-label">${label}</div>
+        <span class="word-chip" data-word="${w1}" onclick="event.stopPropagation();playWord('${w1}',this)">${w1}</span>
+        <span class="word-chip" data-word="${w2}" onclick="event.stopPropagation();playWord('${w2}',this)">${w2}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  if (showConsonants) {
+    html += '<div class="section-title">辅音 (Consonants)</div><div class="phoneme-grid">';
+    CONSONANTS.forEach(([sym, label, file, w1, w2]) => {
+      const isSynth = !file;
+      html += `<div class="phoneme-card${isSynth?' synth':''}" data-phoneme="${sym}" data-file="${file||''}">
+        <div class="audio-status${isSynth?' synth':' bbc'}"></div>
+        <div class="phoneme-symbol" onclick="onPhonemeClick(this.parentElement)">${sym}</div>
+        <div class="phoneme-label">${label}</div>
+        <span class="word-chip" data-word="${w1}" onclick="event.stopPropagation();playWord('${w1}',this)">${w1}</span>
+        <span class="word-chip" data-word="${w2}" onclick="event.stopPropagation();playWord('${w2}',this)">${w2}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function onPhonemeClick(card) {
+  getAudioCtx();
+  const symbol = card.dataset.phoneme;
+  const file = card.dataset.file;
+
+  document.querySelectorAll(".phoneme-card").forEach(c => c.classList.remove("playing"));
+  card.classList.add("playing");
+
+  playPhoneme(symbol, file || null, () => {
+    card.classList.remove("playing");
+  });
+  setTimeout(() => card.classList.remove("playing"), 1200);
+
+  // Check-in tracking
+  updateCheckin();
+}
+
+// ===== Hear Quiz Tab (听辨音标) =====
+let hearQuizInitialized = false;
+let quizPhonemes = [];
+let quizIndex = 0;
+let quizCorrect = 0;
+let quizTotal = 0;
+let quizAnswered = false;
+let quizCurrentPhoneme = null;
+let quizCorrectSymbol = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function initHearQuiz() {
+  hearQuizInitialized = true;
+  quizPhonemes = shuffle(getAllPhonemes());
+  quizIndex = 0;
+  quizCorrect = 0;
+  quizTotal = 0;
+  loadQuizQuestion();
+}
+
+function loadQuizQuestion() {
+  quizAnswered = false;
+  if (quizIndex >= quizPhonemes.length) {
+    quizPhonemes = shuffle(getAllPhonemes());
+    quizIndex = 0;
+  }
+  const [sym, , file] = quizPhonemes[quizIndex];
+  quizCurrentPhoneme = { symbol: sym, file: file || null };
+  quizCorrectSymbol = sym;
+
+  const allPhonemes = getAllPhonemes();
+  const wrongPool = allPhonemes.filter(p => p[0] !== sym);
+  const wrongOptions = shuffle(wrongPool).slice(0, 3).map(p => p[0]);
+  const options = shuffle([sym, ...wrongOptions]);
+
+  document.getElementById("quizScore").textContent = `正确: ${quizCorrect} / ${quizTotal}`;
+  document.getElementById("quizPhonemeDisplay").textContent = "?";
+  document.getElementById("quizFeedback").textContent = "";
+  document.getElementById("quizFeedback").className = "quiz-feedback";
+
+  const optsContainer = document.getElementById("quizOptions");
+  optsContainer.innerHTML = options.map(opt =>
+    `<button class="quiz-option" data-symbol="${opt}" onclick="onQuizOptionClick(this)">${opt}</button>`
+  ).join("");
+
+  setTimeout(() => playQuizPhoneme(), 300);
+}
+
+function playQuizPhoneme() {
+  if (!quizCurrentPhoneme) return;
+  const display = document.getElementById("quizPhonemeDisplay");
+  display.textContent = "♪";
+  display.style.color = "var(--accent)";
+  playPhoneme(quizCurrentPhoneme.symbol, quizCurrentPhoneme.file, () => {
+    display.style.color = "var(--primary)";
+  });
+  setTimeout(() => { display.style.color = "var(--primary)"; }, 1200);
+}
+
+function replayQuizPhoneme() {
+  if (!quizCurrentPhoneme) return;
+  playQuizPhoneme();
+}
+
+function onQuizOptionClick(btn) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  quizTotal++;
+  const selected = btn.dataset.symbol;
+  const isCorrect = selected === quizCorrectSymbol;
+  document.querySelectorAll(".quiz-option").forEach(b => b.classList.add("disabled"));
+  const feedback = document.getElementById("quizFeedback");
+  if (isCorrect) {
+    quizCorrect++;
+    btn.classList.add("correct");
+    feedback.textContent = "正确！";
+    feedback.className = "quiz-feedback correct-fb";
+  } else {
+    btn.classList.add("wrong");
+    feedback.textContent = `错误！正确答案是「${quizCorrectSymbol}」`;
+    feedback.className = "quiz-feedback wrong-fb";
+    document.querySelectorAll(".quiz-option").forEach(b => {
+      if (b.dataset.symbol === quizCorrectSymbol) b.classList.add("highlight-correct");
+    });
+  }
+  document.getElementById("quizScore").textContent = `正确: ${quizCorrect} / ${quizTotal}`;
+  document.getElementById("quizPhonemeDisplay").textContent = quizCorrectSymbol;
+}
+
+function nextQuizQuestion() {
+  if (!quizAnswered && quizTotal > 0) { quizAnswered = true; }
+  quizIndex++;
+  loadQuizQuestion();
+}
+
+// ===== Spelling Practice Tab (直拼练习) =====
+let spellInitialized = false;
+let spellQuestions = [];
+let spellIndex = 0;
+let spellCorrect = 0;
+let spellTotal = 0;
+let spellAnswered = false;
+let spellCurrentQuestion = null;
+
+// Distractors: pick 4-5 wrong phonemes that are visually similar or common
+function getSpellDistractors(correctSym, count) {
+  const allPhonemes = getAllPhonemes().map(p => p[0]);
+  const others = allPhonemes.filter(s => s !== correctSym);
+  return shuffle(others).slice(0, count);
+}
+
+function initSpellPractice() {
+  spellInitialized = true;
+  spellQuestions = shuffle([...SPELL_QUESTIONS]);
+  spellIndex = 0;
+  spellCorrect = 0;
+  spellTotal = 0;
+  loadSpellQuestion();
+}
+
+function loadSpellQuestion() {
+  spellAnswered = false;
+  if (spellIndex >= spellQuestions.length) {
+    spellQuestions = shuffle([...SPELL_QUESTIONS]);
+    spellIndex = 0;
+  }
+
+  spellCurrentQuestion = spellQuestions[spellIndex];
+  const q = spellCurrentQuestion;
+
+  // Build word display with highlighted letters
+  const wordHTML = q.word.replace(q.hl, `<span class="hl">${q.hl}</span>`);
+
+  document.getElementById("spellWordDisplay").innerHTML = wordHTML;
+  document.getElementById("spellIpaDisplay").textContent = q.ipa || "";
+  document.getElementById("spellScore").textContent = `正确: ${spellCorrect} / ${spellTotal}`;
+  document.getElementById("spellFeedback").textContent = "";
+  document.getElementById("spellFeedback").className = "spell-feedback";
+
+  // Generate options: correct + 4-5 distractors
+  const distractors = getSpellDistractors(q.answer, 5);
+  const options = shuffle([q.answer, ...distractors]);
+
+  const optsContainer = document.getElementById("spellOptions");
+  optsContainer.innerHTML = options.map(opt =>
+    `<button class="spell-option" data-symbol="${opt}" onclick="onSpellOptionClick(this)">${opt}</button>`
+  ).join("");
+}
+
+function onSpellOptionClick(btn) {
+  if (spellAnswered || !spellCurrentQuestion) return;
+  spellAnswered = true;
+  spellTotal++;
+
+  const selected = btn.dataset.symbol;
+  const isCorrect = selected === spellCurrentQuestion.answer;
+
+  document.querySelectorAll(".spell-option").forEach(b => b.classList.add("disabled"));
+  const feedback = document.getElementById("spellFeedback");
+
+  if (isCorrect) {
+    spellCorrect++;
+    btn.classList.add("correct");
+    feedback.textContent = "正确！";
+    feedback.className = "spell-feedback correct-fb";
+  } else {
+    btn.classList.add("wrong");
+    feedback.textContent = `错误！"${spellCurrentQuestion.hl}" 对应音标「${spellCurrentQuestion.answer}」`;
+    feedback.className = "spell-feedback wrong-fb";
+    document.querySelectorAll(".spell-option").forEach(b => {
+      if (b.dataset.symbol === spellCurrentQuestion.answer) b.classList.add("highlight-correct");
+    });
+  }
+
+  document.getElementById("spellScore").textContent = `正确: ${spellCorrect} / ${spellTotal}`;
+}
+
+function nextSpellQuestion() {
+  if (!spellAnswered && spellTotal > 0) { spellAnswered = true; }
+  spellIndex++;
+  loadSpellQuestion();
+}
+
+// ===== Recorder Tab =====
+let recorderInitialized = false;
+let recorderSelectedPhoneme = null;
+let recorderMediaRecorder = null;
+let recorderChunks = [];
+let recorderRecordings = [];
+
+function initRecorder() {
+  recorderInitialized = true;
+  renderRecorderPhonemeGrid();
+  renderRecordingList();
+}
+
+function renderRecorderPhonemeGrid() {
+  const grid = document.getElementById("recorderPhonemeGrid");
+  const all = getAllPhonemes();
+  grid.innerHTML = all.map(([sym]) =>
+    `<div class="recorder-phoneme-chip${recorderSelectedPhoneme === sym ? ' selected' : ''}" data-symbol="${sym}" onclick="selectRecorderPhoneme('${sym}', this)">${sym}</div>`
+  ).join("");
+}
+
+function selectRecorderPhoneme(sym, el) {
+  recorderSelectedPhoneme = sym;
+  document.getElementById("recorderSelectedDisplay").textContent = sym;
+  document.getElementById("recordBtn").disabled = false;
+  document.getElementById("recordLabel").textContent = '点击按钮开始录音';
+  document.querySelectorAll(".recorder-phoneme-chip").forEach(c => c.classList.remove("selected"));
+  if (el) el.classList.add("selected");
+}
+
+async function toggleRecording() {
+  if (!recorderSelectedPhoneme) return;
+  if (recorderMediaRecorder && recorderMediaRecorder.state === "recording") {
+    recorderMediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recorderMediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4" });
+    recorderChunks = [];
+    recorderMediaRecorder.ondataavailable = e => { if (e.data.size > 0) recorderChunks.push(e.data); };
+    recorderMediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(recorderChunks, { type: recorderMediaRecorder.mimeType });
+      const url = URL.createObjectURL(blob);
+      const duration = Math.round((recorderChunks.reduce((s, c) => s + c.size, 0) / 16000) * 10) / 10;
+      recorderRecordings.push({ phoneme: recorderSelectedPhoneme, url: url, duration: duration, blob: blob });
+      renderRecordingList();
+      document.getElementById("recordBtn").classList.remove("recording");
+      document.getElementById("recordLabel").textContent = '点击按钮开始录音';
+    };
+    recorderMediaRecorder.start();
+    document.getElementById("recordBtn").classList.add("recording");
+    document.getElementById("recordLabel").textContent = '正在录音...点击停止';
+  } catch(e) {
+    showMsg("无法访问麦克风: " + e.message);
+  }
+}
+
+function renderRecordingList() {
+  const list = document.getElementById("recordingList");
+  if (recorderRecordings.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;font-size:.85rem">暂无录音</div>';
+    return;
+  }
+  list.innerHTML = recorderRecordings.map((rec, i) => `
+    <div class="recording-item">
+      <span class="rec-phoneme">${rec.phoneme}</span>
+      <span class="rec-duration">${rec.duration}s</span>
+      <audio src="${rec.url}" controls style="height:32px;max-width:200px"></audio>
+      <div class="rec-actions">
+        <button class="rec-small-btn del-btn" onclick="deleteRecording(${i})">删除</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function deleteRecording(index) {
+  const rec = recorderRecordings[index];
+  if (rec && rec.url) URL.revokeObjectURL(rec.url);
+  recorderRecordings.splice(index, 1);
+  renderRecordingList();
+}
+
+// ===== Toast Message =====
+function showMsg(text) {
+  const m = document.getElementById("msg");
+  m.textContent = text;
+  m.classList.remove("hide");
+  m.classList.add("show");
+  setTimeout(() => { m.classList.remove("show"); m.classList.add("hide"); }, 2000);
+}
+
+// ===== Init =====
+renderPhonemes();
+renderCheckinBar();
+
+// Pre-warm audio on first user click
+document.addEventListener("click", function warmUp() {
+  getAudioCtx();
+  if (window.speechSynthesis) {
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = () => {};
+  }
+}, { once: true });
+</script>
+</body>
+</html>
